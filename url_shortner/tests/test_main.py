@@ -11,11 +11,9 @@ cwd = os.path.dirname(__file__)
 base_dir = os.path.dirname(os.path.dirname(cwd))
 
 sys.path.append(base_dir)
-
-from url_shortner.main import app, get_db
-from url_shortner.database import Base
 from url_shortner.schemas import ExpirationDate
-
+from url_shortner.database import Base
+from url_shortner.main import app, get_db
 
 SQLALCHEMY_DATABASE_URL = "sqlite://"
 
@@ -45,10 +43,11 @@ client = TestClient(app)
 
 def test_shorten_url():
     for expiry_val in ExpirationDate:
-        response = client.post("/shorten", json={"url": f"https://www.example.com/{expiry_val}", "expiry": expiry_val.value})
+        response = client.post(
+            "/shorten", json={"url": f"https://www.example.com/{expiry_val}", "expiry": expiry_val.value})
         assert response.status_code == 200
         assert "short_url" in response.json()
-    
+
     response = client.post("/shorten", json={"url": f"https://www.example.com/", "expiry": "asdas"})
     assert response.status_code == 422
 
@@ -56,11 +55,34 @@ def test_shorten_url():
 def test_redirect_url():
     response = client.post("/shorten", json={"url": "https://www.example.com", "expiry": "1 day"})
     assert response.status_code == 200
-    
-    short_url: str = response.json()['short_url']
+
+    short_url = response.json()['short_url']
     short_key = short_url.split('/')[-1]
     response = client.get(f"/{short_key}")
     assert response.status_code == 404
 
     response = client.get(f"/wrongkey12")
     assert response.status_code == 404
+
+
+def test_click_stats_url():
+    response = client.post("/shorten", json={"url": "https://www.example", "expiry": "1 day"})
+    assert response.status_code == 200
+
+    short_url = response.json()['short_url']
+    short_key = short_url.split('/')[-1]
+
+    response = client.get(f"/stats/{short_key}")
+    response_clicks = response.json()["clicks"]
+
+    assert response_clicks == 0
+
+    clicks_cnt = 50
+
+    for _ in range(clicks_cnt):
+        response = client.get(f"/{short_key}")
+
+    response = client.get(f"/stats/{short_key}")
+    response_clicks = response.json()["clicks"]
+
+    assert response_clicks == clicks_cnt
