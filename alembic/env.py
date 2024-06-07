@@ -39,7 +39,7 @@ if config.config_file_name is not None:
 cwd = os.path.dirname(__file__)
 base_dir = os.path.dirname(os.path.dirname(cwd))
 sys.path.append(base_dir)
-from url_shotner import models
+from url_shortner import models
 target_metadata = models.Base.metadata
 
 # other values from the config, defined by the needs of env.py,
