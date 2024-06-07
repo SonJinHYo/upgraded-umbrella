@@ -4,7 +4,7 @@ import random
 import string
 
 from .database import SessionLocal, engine
-from .schemas import URLCreate, URLResponse
+from .schemas import URLResponse, ExpirationDate
 from .crud import create_url, get_url_by_key
 from .config import settings
 from . import models
@@ -43,9 +43,10 @@ def create_unique_short_key(db: Session, length=settings.SHORT_KEY_LENGTH):
 
 
 @app.post("/shorten", response_model=URLResponse)
-def shorten_url(url: URLCreate, db: Session = Depends(get_db)):
+def shorten_url(url: str, expiry: ExpirationDate,  db: Session = Depends(get_db)):
     short_key = generate_short_key()
 
-    create_url(db=db, url=url.url, short_key=short_key, expiry=url.expiry)
+    print(expiry.duration)
+    create_url(db=db, url=url, short_key=short_key, expiry=expiry.duration)
 
     return {"short_url": f"{settings.BASE_URL}/{short_key}"}
