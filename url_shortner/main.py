@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
@@ -43,14 +43,18 @@ def create_unique_short_key(db: Session, length: int = settings.SHORT_KEY_LENGTH
         if not get_url_by_key(db, short_key):
             return short_key
     else:
-        raise HTTPException(status_code=500, detail="키 생성에 실패했습니다.")
+        raise HTTPException(status_code=500, detail="generate key failed.")
 
 
 @app.post("/shorten", response_model=URLResponse)
-def shorten_url(url: str, expiry: ExpirationDate,  db: Session = Depends(get_db)):
+def shorten_url(url: URLRequest,  db: Session = Depends(get_db)):
+    db_url: URL = get_url_by_origin_url(db=db, origin_url=url.url)
+    if db_url:
+        return {"short_url": f"{settings.BASE_URL}/{db_url.short_key}"}
+
     short_key = generate_short_key()
 
-    create_url(db=db, url=url, short_key=short_key, expiry=expiry.duration)
+    create_url(db=db, url=url.url, short_key=short_key, expiry=url.expiry.duration)
 
     return {"short_url": f"{settings.BASE_URL}/{short_key}"}
 
@@ -59,7 +63,7 @@ def shorten_url(url: str, expiry: ExpirationDate,  db: Session = Depends(get_db)
 def redirect_url(short_key: str, db: Session = Depends(get_db)):
     db_url = get_url_by_key(db=db, short_key=short_key)
 
-    if db_url and db_url.expiry < datetime.utcnow():
+    if db_url and db_url.expiry.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
         delete_success = delete_url(db=db, short_key=short_key)
         if delete_success:
             db_url = None

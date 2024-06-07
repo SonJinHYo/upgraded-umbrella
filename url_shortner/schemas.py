@@ -24,6 +24,11 @@ class ExpirationDate(str, Enum):
             raise ValueError("Bad Request: expiry value.")
 
 
+class URLRequest(BaseModel):
+    url: str
+    expiry: ExpirationDate
+
+
 class URLResponse(BaseModel):
     short_url: str
 

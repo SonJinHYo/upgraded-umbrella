@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from .models import URL
 
 
 def create_url(db: Session, url: str, short_key: str, expiry: int) -> URL:
-    expiry_date = datetime.utcnow() + timedelta(seconds=expiry)
+    expiry_date = datetime.now(timezone.utc) + timedelta(seconds=expiry)
     db_url = URL(url=url, short_key=short_key, expiry=expiry_date)
 
     db.add(db_url)
@@ -14,7 +14,11 @@ def create_url(db: Session, url: str, short_key: str, expiry: int) -> URL:
     return db_url
 
 
-def get_url_by_key(db: Session, short_key: str) -> str:
+def get_url_by_origin_url(db: Session, origin_url: str) -> URL:
+    return db.query(URL).filter(URL.url == origin_url).first()
+
+
+def get_url_by_key(db: Session, short_key: str) -> URL:
     return db.query(URL).filter(URL.short_key == short_key).first()
 
 
