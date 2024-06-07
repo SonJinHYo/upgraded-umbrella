@@ -17,7 +17,7 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 
-def get_db():
+def get_db() -> SessionLocal:
     db = SessionLocal()
     try:
         yield db
@@ -25,11 +25,11 @@ def get_db():
         db.close()
 
 
-def generate_short_key(length=settings.SHORT_KEY_LENGTH):
+def generate_short_key(length: int = settings.SHORT_KEY_LENGTH) -> str:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
-def create_unique_short_key(db: Session, length=settings.SHORT_KEY_LENGTH):
+def create_unique_short_key(db: Session, length: int = settings.SHORT_KEY_LENGTH) -> str:
     """
     키 생성 전체 경우의 수: 62(대소문자 알파벳 + 숫자 갯수) ** 키 길이
 
@@ -39,6 +39,7 @@ def create_unique_short_key(db: Session, length=settings.SHORT_KEY_LENGTH):
     """
     for _ in range(3):
         short_key = generate_short_key(length)
+
         if not get_url_by_key(db, short_key):
             return short_key
     else:
@@ -57,6 +58,7 @@ def shorten_url(url: str, expiry: ExpirationDate,  db: Session = Depends(get_db)
 @app.get("/{short_key}", response_model=OriginURLResponse)
 def redirect_url(short_key: str, db: Session = Depends(get_db)):
     db_url = get_url_by_key(db=db, short_key=short_key)
+
     if db_url and db_url.expiry < datetime.utcnow():
         delete_success = delete_url(db=db, short_key=short_key)
         if delete_success:

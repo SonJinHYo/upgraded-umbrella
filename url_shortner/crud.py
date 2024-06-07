@@ -14,21 +14,19 @@ def create_url(db: Session, url: str, short_key: str, expiry: int) -> URL:
     return db_url
 
 
-def get_url_by_key(db: Session, short_key: str):
+def get_url_by_key(db: Session, short_key: str) -> str:
     return db.query(URL).filter(URL.short_key == short_key).first()
 
 
-def increment_url_stats(db: Session, short_key: str):
+def increment_url_stats(db: Session, short_key: str) -> None:
     db_url = get_url_by_key(db=db, short_key=short_key)
     if db_url:
         db_url.clicks += 1
         db.commit()
 
 
-def delete_url(db: Session, short_key: str):
+def delete_url(db: Session, short_key: str) -> None:
     db_url = get_url_by_key(db=db, short_key=short_key)
     if db_url:
         db.delete(db_url)
         db.commit()
-        return True
-    return False
