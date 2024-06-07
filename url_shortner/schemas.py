@@ -33,5 +33,9 @@ class URLResponse(BaseModel):
     short_url: str
 
 
+class ClicksResponse(BaseModel):
+    clicks: int
+
+
 class OriginURLResponse(BaseModel):
     origin_url: str

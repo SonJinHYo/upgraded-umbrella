@@ -62,16 +62,29 @@ def shorten_url(url: URLRequest,  db: Session = Depends(get_db)):
 @app.get("/{short_key}", response_model=OriginURLResponse)
 def redirect_url(short_key: str, db: Session = Depends(get_db)):
     db_url = get_url_by_key(db=db, short_key=short_key)
-
+    print(12)
     if db_url and db_url.expiry.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
+        print(13)
         delete_success = delete_url(db=db, short_key=short_key)
         if delete_success:
+            print(15)
             db_url = None
         else:
             raise HTTPException(status_code=500, detail="Server Error")
     if db_url is None:
+        print(16)
+        raise HTTPException(status_code=404, detail="URL not found")
+    print(17)
+    increment_url_stats(db=db, short_key=short_key)
+    print(db_url.clicks)
+    return RedirectResponse(url=db_url.url, status_code=301)
+
+
+@app.get("/stats/{short_key}", response_model=ClicksResponse)
+def get_stats(short_key: str, db: Session = Depends(get_db)):
+    db_url = get_url_by_key(db=db, short_key=short_key)
+
+    if db_url is None:
         raise HTTPException(status_code=404, detail="URL not found")
 
-    increment_url_stats(db=db, short_key=short_key)
-
-    return RedirectResponse(url=db_url.url, status_code=301)
+    return {"clicks": db_url.clicks}
