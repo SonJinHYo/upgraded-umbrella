@@ -1,11 +1,14 @@
+from datetime import datetime
+
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 import random
 import string
 
 from .database import SessionLocal, engine
-from .schemas import URLResponse, ExpirationDate
-from .crud import create_url, get_url_by_key
+from .schemas import *
+from .crud import *
 from .config import settings
 from . import models
 
@@ -46,7 +49,23 @@ def create_unique_short_key(db: Session, length=settings.SHORT_KEY_LENGTH):
 def shorten_url(url: str, expiry: ExpirationDate,  db: Session = Depends(get_db)):
     short_key = generate_short_key()
 
-    print(expiry.duration)
     create_url(db=db, url=url, short_key=short_key, expiry=expiry.duration)
 
     return {"short_url": f"{settings.BASE_URL}/{short_key}"}
+
+
+@app.get("/{short_key}", response_model=OriginURLResponse)
+def redirect_url(short_key: str, db: Session = Depends(get_db)):
+    db_url = get_url_by_key(db=db, short_key=short_key)
+    if db_url and db_url.expiry < datetime.utcnow():
+        delete_success = delete_url(db=db, short_key=short_key)
+        if delete_success:
+            db_url = None
+        else:
+            raise HTTPException(status_code=500, detail="Server Error")
+    if db_url is None:
+        raise HTTPException(status_code=404, detail="URL not found")
+
+    increment_url_stats(db=db, short_key=short_key)
+
+    return RedirectResponse(url=db_url.url, status_code=301)

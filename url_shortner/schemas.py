@@ -26,3 +26,7 @@ class ExpirationDate(str, Enum):
 
 class URLResponse(BaseModel):
     short_url: str
+
+
+class OriginURLResponse(BaseModel):
+    origin_url: str
