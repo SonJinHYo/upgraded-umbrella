@@ -12,3 +12,7 @@ def create_url(db: Session, url: str, short_key: str, expiry: int) -> URL:
     db.refresh(db_url)
 
     return db_url
+
+
+def get_url_by_key(db: Session, short_key: str):
+    return db.query(URL).filter(URL.short_key == short_key).first()
