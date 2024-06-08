@@ -28,7 +28,7 @@ async def shorten_url(url: URLRequest,  db: AsyncSession = Depends(utils.get_db)
     if db_url:
         return {"short_url": f"{settings.BASE_URL}/{db_url.short_key}"}
 
-    short_key = utils.generate_short_key()
+    short_key: str | None = utils.generate_short_key()
 
     if short_key is None:
         raise HTTPException(status_code=500, detail="generate key failed.")
@@ -40,10 +40,10 @@ async def shorten_url(url: URLRequest,  db: AsyncSession = Depends(utils.get_db)
 
 @app.get("/{short_key}", response_model=OriginURLResponse)
 async def redirect_url(short_key: str, db: AsyncSession = Depends(utils.get_db)):
-    db_url: URL = await redis_instance.get(short_key)
+    db_url: URL | None = await redis_instance.get(short_key)
 
     if db_url is None:
-        db_url = await get_url_by_key(db=db, short_key=short_key)
+        db_url: URL | None = await get_url_by_key(db=db, short_key=short_key)
         redis_instance.set(key=short_key, val=db_url)
 
     if db_url and db_url.expiry.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
@@ -61,10 +61,10 @@ async def redirect_url(short_key: str, db: AsyncSession = Depends(utils.get_db))
 
 @app.get("/stats/{short_key}", response_model=ClicksResponse)
 async def get_stats(short_key: str, db: AsyncSession = Depends(utils.get_db)):
-    db_url: URL = await redis_instance.get(short_key)
+    db_url: URL | None = await redis_instance.get(short_key)
 
     if db_url is None:
-        db_url = await get_url_by_key(db=db, short_key=short_key)
+        db_url: URL | None = await get_url_by_key(db=db, short_key=short_key)
         redis_instance.set(key=short_key, val=db_url)
 
     if db_url is None:
