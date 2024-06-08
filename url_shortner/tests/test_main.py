@@ -1,6 +1,5 @@
 import os
 import sys
-import time
 import pytest
 
 from httpx import AsyncClient, ASGITransport
@@ -101,5 +100,3 @@ async def test_click_stats_url(setup_and_teardown_db):
         response_clicks = response.json()["clicks"]
 
         assert response_clicks == clicks_cnt
-
-
