@@ -1,14 +1,15 @@
-from .config import settings
-from .crud import *
-from .schemas import *
 from datetime import datetime, timezone
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException
-from contextlib import asynccontextmanager
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import utils
+from .config import settings
+from .crud import *
+from .schemas import *
+
 
 app = FastAPI()
 

@@ -1,20 +1,21 @@
 import os
 import sys
-import pytest
 
+import pytest
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.pool import StaticPool
-
 
 cwd = os.path.dirname(__file__)
 base_dir = os.path.dirname(os.path.dirname(cwd))
 
 sys.path.append(base_dir)
+
 from url_shortner.schemas import ExpirationDate
 from url_shortner.database import Base
 from url_shortner.main import app
 from url_shortner.utils import get_db
+
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite://"
 

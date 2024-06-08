@@ -1,8 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-import redis.asyncio as aioredis
-
 import random
 import string
+
+from sqlalchemy.ext.asyncio import AsyncSession
+import redis.asyncio as aioredis
 
 from .database import SessionLocal, engine, REDIS_URL
 from .schemas import *
