@@ -1,4 +1,3 @@
-import redis.asyncio as aioredis
 import os
 
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
@@ -30,23 +29,9 @@ SessionLocal = sessionmaker(
 Base = declarative_base()
 
 
-###############     Redis     ###############
+#############     Redis     #############
 
-class RedisDriver:
-    def __init__(self):
-        REDIS_HOST = os.getenv("REDIS_HOST")
-        REDIS_PORT = os.getenv("REDIS_PORT")
+REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_PORT = os.getenv("REDIS_PORT")
 
-        self.redis_url = f'redis://{REDIS_HOST}:{REDIS_PORT}'
-        self.redis_client = aioredis.from_url(self.redis_url)
-
-    async def set(self, key, val, ttl=60):
-        await self.redis_client.set(key, val)
-        if ttl:
-            await self.redis_client.expire(key, ttl)
-
-    async def get(self, key):
-        return await self.redis_client.get(key)
-
-    async def delete(self, key):
-        await self.redis_client.delete(key)
+REDIS_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}'
