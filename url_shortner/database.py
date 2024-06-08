@@ -7,9 +7,11 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
+DEBUG = os.getenv("DEBUG").lower() == 'ture'
+
+MYSQL_HOST = os.getenv("MYSQL_HOST") if not DEBUG else "localhost"
 MYSQL_USER = os.getenv("MYSQL_ROOT_USER")
 MYSQL_PASSWORD = os.getenv("MYSQL_ROOT_PASSWORD")
-MYSQL_HOST = os.getenv("MYSQL_HOST")
 MYSQL_PORT = os.getenv("MYSQL_PORT")
 MYSQL_DB = os.getenv("MYSQL_DB")
 
@@ -31,7 +33,7 @@ Base = declarative_base()
 
 #############     Redis     #############
 
-REDIS_HOST = os.getenv("REDIS_HOST")
+REDIS_HOST = os.getenv("REDIS_HOST") if not DEBUG else "localhost"
 REDIS_PORT = os.getenv("REDIS_PORT")
 
 REDIS_URL = f'redis://{REDIS_HOST}:{REDIS_PORT}'

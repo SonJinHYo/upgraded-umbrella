@@ -16,14 +16,16 @@ config = context.config
 
 load_dotenv()
 
+DEBUG = os.getenv("DEBUG").lower() == 'ture'
+
+MYSQL_HOST = os.getenv("MYSQL_HOST") if not DEBUG else "localhost"
 MYSQL_USER = os.getenv("MYSQL_ROOT_USER")
 MYSQL_PASSWORD = os.getenv("MYSQL_ROOT_PASSWORD")
-MYSQL_HOST = os.getenv("MYSQL_HOST")
 MYSQL_PORT = os.getenv("MYSQL_PORT")
 MYSQL_DB = os.getenv("MYSQL_DB")
 
 database_url = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
-print(database_url)
+
 config.set_main_option("sqlalchemy.url", database_url)
 
 
