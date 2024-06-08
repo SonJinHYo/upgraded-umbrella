@@ -33,9 +33,9 @@ def create_unique_short_key(db: Session, length: int = settings.SHORT_KEY_LENGTH
     """
     키 생성 전체 경우의 수: 62(대소문자 알파벳 + 숫자 갯수) ** 키 길이
 
-    if key 길이 = 6:
+    if key 길이 = 6, 중복키 발생시 재생성 횟수 3:
         62 ** 6은 약 568억
-        100만개의 키를 생성할 때 중복이 발생할 확률 = 약 0.0015%
+        저장된 키가 10억개 일 때, 500 에러 발생 확률 = (10 / 568) ** 3 = 약 0.0005%
     """
     for _ in range(3):
         short_key = generate_short_key(length)
