@@ -1,9 +1,10 @@
+import asyncio
 import os
 import sys
+import pytest
 
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from httpx import AsyncClient, ASGITransport
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.pool import StaticPool
 
 
@@ -15,74 +16,88 @@ from url_shortner.schemas import ExpirationDate
 from url_shortner.database import Base
 from url_shortner.main import app, get_db
 
-SQLALCHEMY_DATABASE_URL = "sqlite://"
+SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite://"
 
-engine = create_engine(
+engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
+    echo=True,
 )
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+TestingSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+    autocommit=False,
+    autoflush=False,
+    )
 
 
-Base.metadata.create_all(bind=engine)
-
-
-def override_get_db():
-    try:
-        db = TestingSessionLocal()
-        yield db
-    finally:
-        db.close()
+async def override_get_db():
+    async with TestingSessionLocal() as session:
+        yield session
 
 
 app.dependency_overrides[get_db] = override_get_db
 
-client = TestClient(app)
+
+@pytest.fixture(autouse=True, scope="module")
+async def setup_and_teardown_db():
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
-def test_shorten_url():
-    for expiry_val in ExpirationDate:
-        response = client.post(
-            "/shorten", json={"url": f"https://www.example.com/{expiry_val}", "expiry": expiry_val.value})
+@pytest.mark.anyio
+async def test_shorten_url(setup_and_teardown_db):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        for expiry_val in ExpirationDate:
+            response = await client.post(
+                "/shorten", json={"url": f"https://www.example.com/{expiry_val}", "expiry": expiry_val.value}
+            )
+            assert response.status_code == 200
+            assert "short_url" in response.json()
+
+        response = await client.post("/shorten", json={"url": f"https://www.example.com/", "expiry": "asdas"})
+        assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_redirect_url(setup_and_teardown_db):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/shorten", json={"url": "https://www.example.com", "expiry": "1 day"})
         assert response.status_code == 200
-        assert "short_url" in response.json()
 
-    response = client.post("/shorten", json={"url": f"https://www.example.com/", "expiry": "asdas"})
-    assert response.status_code == 422
+        short_url = response.json()['short_url']
+        short_key = short_url.split('/')[-1]
+        response = await client.get(f"/{short_key}")
+        assert response.status_code == 301
 
-
-def test_redirect_url():
-    response = client.post("/shorten", json={"url": "https://www.example.com", "expiry": "1 day"})
-    assert response.status_code == 200
-
-    short_url = response.json()['short_url']
-    short_key = short_url.split('/')[-1]
-    response = client.get(f"/{short_key}")
-    assert response.status_code == 404
-
-    response = client.get(f"/wrongkey12")
-    assert response.status_code == 404
+        response = await client.get(f"/wrongkey12")
+        assert response.status_code == 404
 
 
-def test_click_stats_url():
-    response = client.post("/shorten", json={"url": "https://www.example", "expiry": "1 day"})
-    assert response.status_code == 200
+@pytest.mark.anyio
+async def test_click_stats_url(setup_and_teardown_db):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/shorten", json={"url": "https://www.example.uniquess", "expiry": "1 day"})
+        assert response.status_code == 200
 
-    short_url = response.json()['short_url']
-    short_key = short_url.split('/')[-1]
+        short_url = response.json()['short_url']
+        short_key = short_url.split('/')[-1]
 
-    response = client.get(f"/stats/{short_key}")
-    response_clicks = response.json()["clicks"]
+        clicks_cnt = 100
 
-    assert response_clicks == 0
+        for _ in range(clicks_cnt):
+            await client.get(f"/{short_key}")
 
-    clicks_cnt = 50
+        response = await client.get(f"/stats/{short_key}")
+        response_clicks = response.json()["clicks"]
 
-    for _ in range(clicks_cnt):
-        response = client.get(f"/{short_key}")
-
-    response = client.get(f"/stats/{short_key}")
-    response_clicks = response.json()["clicks"]
-
-    assert response_clicks == clicks_cnt
+        assert response_clicks == clicks_cnt
