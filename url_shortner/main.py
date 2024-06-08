@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Depends, HTTPException
+from contextlib import asynccontextmanager
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 import random
@@ -46,9 +47,10 @@ async def create_unique_short_key(db: AsyncSession, length: int = settings.SHORT
         raise HTTPException(status_code=500, detail="generate key failed.")
 
 
-@app.on_event("startup")
-async def on_startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await create_database()
+    yield
 
 
 @app.post("/shorten", response_model=URLResponse)
@@ -69,11 +71,9 @@ async def redirect_url(short_key: str, db: AsyncSession = Depends(get_db)):
     db_url = await get_url_by_key(db=db, short_key=short_key)
 
     if db_url and db_url.expiry.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-        delete_success = await delete_url(db=db, short_key=short_key)
-        if delete_success:
-            db_url = None
-        else:
-            raise HTTPException(status_code=500, detail="Server Error")
+        await delete_url(db=db, short_key=short_key)
+        db_url = None
+
     if db_url is None:
         raise HTTPException(status_code=404, detail="URL not found")
 
