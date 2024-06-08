@@ -13,7 +13,8 @@ base_dir = os.path.dirname(os.path.dirname(cwd))
 sys.path.append(base_dir)
 from url_shortner.schemas import ExpirationDate
 from url_shortner.database import Base
-from url_shortner.main import app, get_db
+from url_shortner.main import app
+from url_shortner.utils import get_db
 
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite://"
 
