@@ -25,11 +25,14 @@ URL 단축 서비스는 긴 URL을 짧게 단축하여 사용하고, 단축된 U
 ----
  
 ## Running
-1. `git clone https://github.com/SonJinHYo/url-shortner.git`
-2. `cd url-shortner`
-3. `docker compose up --build`
-4. API Swagger 문서 [localhost:8000/docs](localhost:8000/docs) 접속
+1. git clone 후 fastapi, redis, mysql db 실행 (fastapi 실행 전 pytest 자동 진행)
+```
+git clone https://github.com/SonJinHYo/url-shortner.git
+cd url-shortner
+docker compose up --build
+```
+2. API Swagger 문서 접속
+```
+localhost:8000/docs
+```
 
-</br>
-
-----
