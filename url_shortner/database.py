@@ -7,7 +7,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 load_dotenv()
 
-DEBUG = os.getenv("DEBUG").lower() == 'ture'
+DEBUG = os.getenv("DEBUG").lower() == 'true'
 
 MYSQL_HOST = os.getenv("MYSQL_HOST") if not DEBUG else "localhost"
 MYSQL_USER = os.getenv("MYSQL_ROOT_USER")
