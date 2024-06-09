@@ -41,19 +41,25 @@ async def shorten_url(url: URLRequest,  db: AsyncSession = Depends(utils.get_db)
 
 @app.get("/{short_key}", response_model=OriginURLResponse)
 async def redirect_url(short_key: str, db: AsyncSession = Depends(utils.get_db)):
-    db_url: URL | None = await redis_instance.get(short_key)
+    db_url: URL | None = await utils.get_url_cache_or_db(
+        short_key=short_key,
+        redis_instance=redis_instance,
+        db=db
+    )
 
-    if db_url is None:
-        db_url: URL | None = await get_url_by_key(db=db, short_key=short_key)
-        redis_instance.set(key=short_key, val=db_url)
+    if db_url:
+        remain_expiry: float = utils.get_remain_expiry_to_sec(db_url.expiry)
 
-    if db_url and db_url.expiry.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-        await delete_url(db=db, short_key=short_key)
-        await redis_instance.delete(key=short_key)
-        db_url = None
+        if remain_expiry < 0:
+            await delete_url(db=db, short_key=short_key)
+            db_url = None
 
     if db_url is None:
         raise HTTPException(status_code=404, detail="URL not found")
+
+    db_url.clicks += 1
+
+    await redis_instance.set_url(key=short_key, url=db_url)
 
     await increment_url_stats(db=db, short_key=short_key)
 
@@ -62,13 +68,15 @@ async def redirect_url(short_key: str, db: AsyncSession = Depends(utils.get_db))
 
 @app.get("/stats/{short_key}", response_model=ClicksResponse)
 async def get_stats(short_key: str, db: AsyncSession = Depends(utils.get_db)):
-    db_url: URL | None = await redis_instance.get(short_key)
-
-    if db_url is None:
-        db_url: URL | None = await get_url_by_key(db=db, short_key=short_key)
-        redis_instance.set(key=short_key, val=db_url)
+    db_url: URL | None = await utils.get_url_cache_or_db(
+        short_key=short_key,
+        redis_instance=redis_instance,
+        db=db
+    )
 
     if db_url is None:
         raise HTTPException(status_code=404, detail="URL not found")
+
+    await redis_instance.set_url(key=short_key, url=db_url)
 
     return {"clicks": db_url.clicks}
