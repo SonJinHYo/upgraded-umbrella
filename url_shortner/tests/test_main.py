@@ -1,4 +1,5 @@
 import os
+import random
 import sys
 
 import pytest
@@ -87,7 +88,7 @@ async def test_redirect_url(setup_and_teardown_db):
 async def test_click_stats_url(setup_and_teardown_db):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.post("/shorten", json={"url": "https://www.example.uniquess", "expiry": "1 day"})
+        response = await client.post("/shorten", json={"url": f"https://www.example.{random.choices('unique', k=6)}", "expiry": "1 day"})
         assert response.status_code == 200
 
         short_url = response.json()['short_url']
