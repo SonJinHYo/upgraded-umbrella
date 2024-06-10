@@ -1,24 +1,35 @@
-﻿# URL Shortner Service
-URL 단축 서비스는 긴 URL을 짧게 단축하여 사용하고, 단축된 URL을 통해 원본 URL로 리디렉션하는 기능을 제공합니다.
+# URL 단축 서비스
 
-## Skill Stack
-- Backend: FastAPI
-  - API
-    - POST `/shorten`: 원본 url과 유효 기간을 입력받아 단축url 반환
-    - GET `/{short_key}`: `short_key`에 해당하는 url로 리다이렉트
-    - GET `/stats/{short_key}`: `short_key`에 해당하는 url의 조회 수 반환
-- Database:
-  - MySQL: 변동이 없는 스키마를 다룬다는 점에서 관계형 DB 사용. 그 중 비교적 간단하게 시작 가능한 MySQL을 선택
-  - Redis: 캐시 서버 중 무난한 고성능 오픈소스 선택
-    - `{short_key: URL object}`로 캐시 저장
-    - 캐싱 시간은 만료 기간을 넘지 않도록 구현
-      - `ttl = min(ttl, 만료까지 남은 시간)`
-- GET메소드에 한정해서 cache aside로 구현 
-- ETC:
-  - sqlalchemy, alembic
-  - pytest
-  - Docker
-  - Poetry
+URL 단축 서비스는 긴 URL을 짧게 단축하여 사용하고, 단축된 URL을 통해 원본 URL로 리디렉션하는 기능을 제공합니다. 또한, 단축 URL이 조회된 횟수를 추적합니다.
+
+## 기술 스택
+
+### 백엔드: FastAPI
+- **API 엔드포인트**
+  - **POST `/shorten`**: 원본 URL과 만료 기간을 입력받아 단축 URL을 반환합니다.
+  - **GET `/{short_key}`**: `short_key`에 해당하는 원본 URL로 리디렉션합니다.
+  - **GET `/stats/{short_key}`**: `short_key`에 해당하는 URL의 조회 수를 반환합니다.
+
+### 데이터베이스
+- **MySQL**
+  - 변동이 없는 스키마를 다루기에 적합하며, 사용하기 간단하여 선택하였습니다.
+- **Redis**
+  - 고성능 오픈소스 캐시 서버로 무난하여 선택하였습니다.
+  - `{short_key: URL 객체}` 형식으로 캐시를 저장합니다.
+  - URL객체는 `json` 라이브러리를 통해 딕셔너리를 직렬화하여 저장하고 불러옵니다.
+  - 캐싱 시간은 URL의 만료 기간을 넘지 않도록 설정합니다.
+    - `ttl = min(ttl, 만료까지 남은 시간)`
+
+### 캐싱 전략
+- **Cache Aside 패턴**
+  - GET 메소드에 한정하여 적용합니다.
+
+### 기타 도구
+- **SQLAlchemy**: 데이터베이스 상호작용을 위해 사용합니다.
+- **Alembic**: 데이터베이스 마이그레이션을 위해 사용합니다.
+- **Pytest**: 테스트를 위해 사용합니다.
+- **Docker**: 컨테이너화를 위해 사용합니다.
+- **Poetry**: 의존성 관리를 위해 사용합니다.
 
 </br>
 
